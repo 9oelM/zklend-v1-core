@@ -801,6 +801,52 @@ fn test_interest_accumulation() {
 
 #[test]
 #[available_gas(90000000)]
+fn test_amount_to_treasury() {
+    let setup = setup_with_loan();
+
+    // No interest accumulated yet
+    assert_eq(
+        @setup.z_token_b.balanceOf(setup.bob.contract_address), @10000000000000000000000, 'FAILED'
+    );
+    assert_eq(
+        @setup.z_token_b.balanceOf(MOCK_TREASURY_ADDRESS.try_into().unwrap()), @0, 'FAILED'
+    );
+
+    starknet::testing::set_block_timestamp(100);
+    
+    // Interest after 100 seconds:
+    //   Interest = 0.000113765625 * 10000 * 100 * (1 - 20%) / (365 * 86400) = 0.000002885987442922374429223
+    //                                                         => 2885987442922
+    //   Total balance = 10000 * 10 ** 18 + 2885987442922
+    assert_eq(
+        @setup.z_token_b.balanceOf(setup.bob.contract_address), @10000000002885987442922, 'FAILED'
+    );
+    assert_eq(
+        @setup.z_token_b.balanceOf(MOCK_TREASURY_ADDRESS.try_into().unwrap()), @0, 'FAILED'
+    );
+    starknet::testing::set_block_timestamp(200);
+    
+    setup
+        .bob
+        .erc20_approve(
+            setup.token_b.contract_address,
+            setup.market.contract_address, // spender
+            1000000000000000000000000 // amount
+        );
+    setup
+        .bob
+        .market_deposit(
+            setup.market.contract_address,
+            setup.token_b.contract_address, // token
+            10000000000000000000000 // amount
+        );
+    // assert_eq(
+    //     @setup.z_token_b.balanceOf(MOCK_TREASURY_ADDRESS.try_into().unwrap()), @0, 'FAILED'
+    // );
+}
+
+#[test]
+#[available_gas(90000000)]
 fn test_debt_accumulation() {
     let setup = setup_with_loan();
 
